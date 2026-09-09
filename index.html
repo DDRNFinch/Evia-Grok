@@ -446,17 +446,21 @@
   }
 
   #sheetHandle .grip {
-    width: 40px;
-    height: 5px;
-    border-radius: 3px;
-    background: rgba(0, 0, 0, 0.18);
-    transition: background 0.2s ease, transform 0.2s ease;
+    width: 16px;
+    height: 16px;
+    background: transparent;
+    border-top: 4px solid rgba(0, 0, 0, 0.28);
+    border-right: 4px solid rgba(0, 0, 0, 0.28);
+    border-radius: 2px;
+    transform: rotate(-45deg);
+    transition: border-color 0.2s ease, transform 0.2s ease;
   }
 
   #sheetHandle:active .grip,
   #sheetHandle.dragging .grip {
-    background: rgba(0, 0, 0, 0.3);
-    transform: scaleX(1.15);
+    border-top-color: rgba(0, 0, 0, 0.42);
+    border-right-color: rgba(0, 0, 0, 0.42);
+    transform: rotate(-45deg) scale(1.15);
   }
 
   #sheetBlur {
