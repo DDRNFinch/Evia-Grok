@@ -14,61 +14,84 @@
     body {
       background: #ffffff;
       height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      width: 100vw;
+      position: relative;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       overflow: hidden;
       user-select: none;
       cursor: default;
     }
 
+    /* Name label – stays near the character */
     .name {
+      position: absolute;
       color: #e6a800;
-      font-size: 1.9rem;
+      font-size: 1.6rem;
       font-weight: 400;
       letter-spacing: 0.18em;
-      margin-bottom: 2.8rem;
       opacity: 0.9;
-      transition: all 0.4s ease;
+      transition: all 0.7s cubic-bezier(0.34, 1.2, 0.64, 1);
+      pointer-events: none;
+      z-index: 10;
     }
 
-    .name.happy {
-      color: #f5b800;
-      transform: scale(1.05);
+    /* Centered position for the name */
+    .name.center {
+      top: calc(50% - 160px);
+      left: 50%;
+      transform: translateX(-50%);
     }
 
+    /* Top-left position for the name */
+    .name.corner {
+      top: 28px;
+      left: 38px;
+      transform: translateX(0) scale(0.85);
+      font-size: 1.25rem;
+    }
+
+    /* The whole character stage */
     .stage {
-      position: relative;
-      width: 300px;
-      height: 300px;
+      position: absolute;
+      width: 200px;
+      height: 200px;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: all 0.75s cubic-bezier(0.34, 1.15, 0.64, 1);
+      z-index: 5;
+      cursor: pointer;
+    }
+
+    /* Default: centered */
+    .stage.center {
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    /* Moved to top-left corner, slightly smaller */
+    .stage.corner {
+      top: 70px;
+      left: 30px;
+      transform: translate(0, 0) scale(0.72);
     }
 
     /* Soft floor glow */
     .glow-floor {
       position: absolute;
-      bottom: 22px;
-      width: 150px;
-      height: 32px;
+      bottom: 8px;
+      width: 130px;
+      height: 28px;
       background: radial-gradient(ellipse at center,
-        rgba(255, 190, 30, 0.45) 0%,
-        rgba(255, 170, 0, 0.18) 45%,
+        rgba(255, 190, 30, 0.42) 0%,
+        rgba(255, 170, 0, 0.16) 45%,
         transparent 75%);
       border-radius: 50%;
-      filter: blur(8px);
+      filter: blur(7px);
       animation: floorPulse 3.4s ease-in-out infinite;
       z-index: 1;
-      transition: all 0.3s ease;
-    }
-
-    .stage.react .glow-floor {
-      transform: scale(1.35);
-      opacity: 1.2;
-      filter: blur(10px);
+      transition: opacity 0.4s ease;
     }
 
     @keyframes floorPulse {
@@ -79,39 +102,31 @@
     /* Floating wrapper */
     .ball-wrap {
       position: relative;
-      width: 170px;
-      height: 170px;
+      width: 160px;
+      height: 160px;
       animation: float 3.8s ease-in-out infinite;
       z-index: 2;
-      cursor: pointer;
-      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    .ball-wrap:active {
-      transform: scale(0.92);
-    }
-
-    .stage.react .ball-wrap {
-      animation: bounce 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     @keyframes float {
       0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-16px); }
+      50%      { transform: translateY(-14px); }
     }
 
-    @keyframes bounce {
-      0%   { transform: translateY(0) scale(1); }
-      30%  { transform: translateY(-38px) scale(1.08); }
-      55%  { transform: translateY(6px) scale(0.96); }
-      75%  { transform: translateY(-10px) scale(1.03); }
-      100% { transform: translateY(0) scale(1); }
+    /* When in corner, a gentler smaller float */
+    .stage.corner .ball-wrap {
+      animation: floatCorner 4.2s ease-in-out infinite;
+    }
+
+    @keyframes floatCorner {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-9px); }
     }
 
     /* The yellow ball */
     .ball {
-      width: 170px;
-      height: 170px;
+      width: 160px;
+      height: 160px;
       border-radius: 50%;
       background: radial-gradient(circle at 32% 28%,
         #fff0a0 0%,
@@ -119,52 +134,42 @@
         #ffc107 58%,
         #f0a000 100%);
       box-shadow:
-        0 0 35px 6px rgba(255, 190, 40, 0.35),
-        0 0 70px 18px rgba(255, 170, 0, 0.15),
-        inset 0 -14px 28px rgba(180, 100, 0, 0.22),
-        inset 0 14px 22px rgba(255, 255, 220, 0.4);
+        0 0 32px 5px rgba(255, 190, 40, 0.32),
+        0 0 65px 16px rgba(255, 170, 0, 0.13),
+        inset 0 -12px 26px rgba(180, 100, 0, 0.2),
+        inset 0 12px 20px rgba(255, 255, 220, 0.38);
       position: relative;
       animation: ballPulse 3.4s ease-in-out infinite;
-      transition: box-shadow 0.3s ease;
-    }
-
-    .stage.react .ball {
-      box-shadow:
-        0 0 50px 12px rgba(255, 190, 40, 0.55),
-        0 0 90px 25px rgba(255, 170, 0, 0.25),
-        inset 0 -14px 28px rgba(180, 100, 0, 0.22),
-        inset 0 14px 22px rgba(255, 255, 220, 0.4);
     }
 
     @keyframes ballPulse {
       0%, 100% { transform: scale(1); }
-      50%      { transform: scale(1.035); }
+      50%      { transform: scale(1.03); }
     }
 
-    /* Eyes container */
+    /* Eyes */
     .eyes {
       position: absolute;
       top: 52%;
       left: 50%;
       transform: translate(-50%, -50%);
       display: flex;
-      gap: 30px;
-      transition: transform 0.25s ease;
+      gap: 28px;
+      transition: all 0.3s ease;
     }
 
     .eye {
-      width: 19px;
-      height: 34px;
+      width: 17px;
+      height: 32px;
       background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 0 6px rgba(255, 255, 255, 0.5);
-      transition: all 0.2s ease;
+      border-radius: 9px;
+      box-shadow: 0 0 5px rgba(255, 255, 255, 0.45);
+      transition: all 0.25s ease;
       transform-origin: center;
     }
 
-    /* Idle blink */
     .eye.blink {
-      animation: blink 0.28s ease;
+      animation: blink 0.26s ease;
     }
 
     @keyframes blink {
@@ -172,60 +177,52 @@
       50%      { transform: scaleY(0.08); }
     }
 
-    /* Happy eyes (curved / smaller) */
-    .eyes.happy .eye {
-      height: 22px;
-      border-radius: 12px 12px 4px 4px;
-      transform: translateY(4px);
+    /* Thinking expression (slightly looking up-left) */
+    .eyes.thinking {
+      transform: translate(calc(-50% - 6px), calc(-50% - 5px));
     }
 
-    /* Surprised eyes */
-    .eyes.surprised .eye {
-      width: 24px;
-      height: 38px;
-      border-radius: 50%;
-    }
-
-    /* Sleepy eyes */
-    .eyes.sleepy .eye {
-      height: 12px;
-      border-radius: 6px;
-      transform: translateY(6px);
+    .eyes.thinking .eye {
+      height: 28px;
     }
 
     /* Highlight */
     .highlight {
       position: absolute;
-      top: 24px;
-      left: 40px;
-      width: 42px;
-      height: 24px;
-      background: rgba(255, 255, 255, 0.38);
+      top: 22px;
+      left: 36px;
+      width: 38px;
+      height: 22px;
+      background: rgba(255, 255, 255, 0.36);
       border-radius: 50%;
-      filter: blur(5px);
+      filter: blur(4px);
       transform: rotate(-28deg);
       pointer-events: none;
     }
 
     .hint {
-      margin-top: 3.8rem;
-      color: #999;
-      font-size: 0.9rem;
-      letter-spacing: 0.04em;
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #aaa;
+      font-size: 0.88rem;
+      letter-spacing: 0.03em;
       text-align: center;
-      line-height: 1.5;
+      line-height: 1.55;
+      transition: opacity 0.4s ease;
     }
 
     .hint strong {
-      color: #666;
+      color: #777;
       font-weight: 500;
     }
   </style>
 </head>
 <body>
-  <div class="name" id="name">Evia</div>
+  <div class="name center" id="name">Evia</div>
 
-  <div class="stage" id="stage">
+  <div class="stage center" id="stage">
     <div class="glow-floor"></div>
     <div class="ball-wrap" id="ballWrap">
       <div class="ball">
@@ -238,94 +235,90 @@
     </div>
   </div>
 
-  <div class="hint">
-    Click or tap Evia<br>
-    <strong>idle · happy · surprised · sleepy</strong>
+  <div class="hint" id="hint">
+    Click Evia to send her to the corner<br>
+    <strong>Click again to bring her back</strong>
   </div>
 
   <script>
     const stage = document.getElementById('stage');
-    const ballWrap = document.getElementById('ballWrap');
-    const eyes = document.getElementById('eyes');
     const nameEl = document.getElementById('name');
+    const eyes = document.getElementById('eyes');
     const eyeL = document.getElementById('eyeL');
     const eyeR = document.getElementById('eyeR');
+    const hint = document.getElementById('hint');
 
-    let expression = 'idle';
-    let isReacting = false;
+    let inCorner = false;
+    let isAnimating = false;
 
-    // Random idle blink
+    // Idle blink
     function scheduleBlink() {
-      const delay = 2800 + Math.random() * 3500;
+      const delay = 2600 + Math.random() * 3200;
       setTimeout(() => {
-        if (expression === 'idle' && !isReacting) {
+        if (!isAnimating) {
           eyeL.classList.add('blink');
           eyeR.classList.add('blink');
           setTimeout(() => {
             eyeL.classList.remove('blink');
             eyeR.classList.remove('blink');
-          }, 280);
+          }, 260);
         }
         scheduleBlink();
       }, delay);
     }
     scheduleBlink();
 
-    // Subtle eye drift
+    // Subtle eye drift only when centered
     setInterval(() => {
-      if (expression !== 'idle' || isReacting) return;
-      const x = (Math.random() - 0.5) * 8;
-      const y = (Math.random() - 0.5) * 5;
+      if (inCorner || isAnimating) return;
+      const x = (Math.random() - 0.5) * 7;
+      const y = (Math.random() - 0.5) * 4;
       eyes.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
       setTimeout(() => {
-        if (expression === 'idle') {
+        if (!inCorner) {
           eyes.style.transform = 'translate(-50%, -50%)';
         }
-      }, 500 + Math.random() * 400);
-    }, 4500 + Math.random() * 2500);
+      }, 450 + Math.random() * 350);
+    }, 4200 + Math.random() * 2500);
 
-    // Click / tap reaction
-    function react() {
-      if (isReacting) return;
-      isReacting = true;
+    function toggle() {
+      if (isAnimating) return;
+      isAnimating = true;
 
-      // Cycle expressions
-      const next = {
-        idle: 'happy',
-        happy: 'surprised',
-        surprised: 'sleepy',
-        sleepy: 'idle'
-      };
-      expression = next[expression];
+      inCorner = !inCorner;
 
-      // Reset classes
-      eyes.className = 'eyes';
-      nameEl.className = 'name';
+      if (inCorner) {
+        // Go to top-left corner
+        stage.classList.remove('center');
+        stage.classList.add('corner');
+        nameEl.classList.remove('center');
+        nameEl.classList.add('corner');
 
-      if (expression === 'happy') {
-        eyes.classList.add('happy');
-        nameEl.classList.add('happy');
-      } else if (expression === 'surprised') {
-        eyes.classList.add('surprised');
-      } else if (expression === 'sleepy') {
-        eyes.classList.add('sleepy');
+        eyes.classList.add('thinking');
+        hint.innerHTML = 'Click Evia to bring her back to the centre<br><strong>She’s thinking up here…</strong>';
+      } else {
+        // Return to centre
+        stage.classList.remove('corner');
+        stage.classList.add('center');
+        nameEl.classList.remove('corner');
+        nameEl.classList.add('center');
+
+        eyes.classList.remove('thinking');
+        eyes.style.transform = 'translate(-50%, -50%)';
+        hint.innerHTML = 'Click Evia to send her to the corner<br><strong>Click again to bring her back</strong>';
       }
 
-      // Bounce + glow
-      stage.classList.add('react');
-
+      // Allow next click after the transition finishes
       setTimeout(() => {
-        stage.classList.remove('react');
-        isReacting = false;
-      }, 600);
+        isAnimating = false;
+      }, 780);
     }
 
-    ballWrap.addEventListener('click', react);
-    ballWrap.addEventListener('touchstart', (e) => {
+    stage.addEventListener('click', toggle);
+    stage.addEventListener('touchstart', (e) => {
       e.preventDefault();
-      react();
+      toggle();
     }, { passive: false });
   </script>
 </body>
 </html>
-
