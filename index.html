@@ -1,324 +1,888 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Evia</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Evia</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<meta name="theme-color" content="#ffb300" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Evia" />
+<style>
+  :root {
+    --bg: #ffffff;
+    --orb-a: #ffe14d;
+    --orb-b: #ffb300;
+    --eye: #ffffff;
+  }
 
-    body {
-      background: #ffffff;
-      height: 100vh;
-      width: 100vw;
-      position: relative;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      overflow: hidden;
-      user-select: none;
-      cursor: default;
-    }
+  * {
+    box-sizing: border-box;
+  }
 
-    /* Name label – stays near the character */
-    .name {
-      position: absolute;
-      color: #e6a800;
-      font-size: 1.6rem;
-      font-weight: 400;
-      letter-spacing: 0.18em;
-      opacity: 0.9;
-      transition: all 0.7s cubic-bezier(0.34, 1.2, 0.64, 1);
-      pointer-events: none;
-      z-index: 10;
-    }
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
 
-    /* Centered position for the name */
-    .name.center {
-      top: calc(50% - 160px);
-      left: 50%;
-      transform: translateX(-50%);
-    }
+  body {
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
 
-    /* Top-left position for the name */
-    .name.corner {
-      top: 28px;
-      left: 38px;
-      transform: translateX(0) scale(0.85);
-      font-size: 1.25rem;
-    }
+  #dock {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 96px;
+    height: 96px;
+    margin: -48px 0 0 -48px;
+    transform-origin: top left;
+    transform: scale(1);
+    cursor: pointer;
+    user-select: none;
+    transition:
+      top 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+      left 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+      margin 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+      transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 
-    /* The whole character stage */
-    .stage {
-      position: absolute;
-      width: 200px;
-      height: 200px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.75s cubic-bezier(0.34, 1.15, 0.64, 1);
-      z-index: 5;
-      cursor: pointer;
-    }
+  #dock.docked {
+    top: 20px;
+    left: 20px;
+    margin: 0;
+    transform: scale(0.55);
+  }
 
-    /* Default: centered */
-    .stage.center {
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(1);
-    }
+  /* one-time pop-in when the page first loads */
+  .reveal {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    animation: orb-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
 
-    /* Moved to top-left corner, slightly smaller */
-    .stage.corner {
-      top: 70px;
-      left: 30px;
-      transform: translate(0, 0) scale(0.72);
-    }
+  /* a yellow puddle-drop ripple bursts from behind her as she appears */
+  .flash-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1px;
+    height: 1px;
+    z-index: 0;
+    pointer-events: none;
+  }
 
-    /* Soft floor glow */
-    .glow-floor {
-      position: absolute;
-      bottom: 8px;
-      width: 130px;
-      height: 28px;
-      background: radial-gradient(ellipse at center,
-        rgba(255, 190, 30, 0.42) 0%,
-        rgba(255, 170, 0, 0.16) 45%,
-        transparent 75%);
-      border-radius: 50%;
-      filter: blur(7px);
-      animation: floorPulse 3.4s ease-in-out infinite;
-      z-index: 1;
-      transition: opacity 0.4s ease;
-    }
+  .ripple {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 70px;
+    height: 70px;
+    margin: -35px 0 0 -35px;
+    border-radius: 50%;
+    border: 4px solid var(--orb-b);
+    opacity: 0;
+    animation: ripple-out 1.15s ease-out forwards;
+  }
 
-    @keyframes floorPulse {
-      0%, 100% { transform: scale(1); opacity: 0.65; }
-      50%      { transform: scale(1.15); opacity: 0.95; }
-    }
+  .ripple.r2 {
+    animation-delay: 0.16s;
+  }
 
-    /* Floating wrapper */
-    .ball-wrap {
-      position: relative;
-      width: 160px;
-      height: 160px;
-      animation: float 3.8s ease-in-out infinite;
-      z-index: 2;
-    }
+  .ripple.r3 {
+    animation-delay: 0.32s;
+  }
 
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-14px); }
-    }
+  .flash-core {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 60px;
+    height: 60px;
+    margin: -30px 0 0 -30px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff8dd 0%, var(--orb-a) 55%, var(--orb-b) 100%);
+    animation: flash-core-out 0.55s ease-out forwards;
+  }
 
-    /* When in corner, a gentler smaller float */
-    .stage.corner .ball-wrap {
-      animation: floatCorner 4.2s ease-in-out infinite;
-    }
+  .orb-wrap {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+  }
 
-    @keyframes floatCorner {
-      0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-9px); }
-    }
+  .floater {
+    width: 100%;
+    height: 100%;
+    animation: float 3.4s ease-in-out infinite;
+  }
 
-    /* The yellow ball */
-    .ball {
-      width: 160px;
-      height: 160px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 32% 28%,
-        #fff0a0 0%,
-        #ffd84d 28%,
-        #ffc107 58%,
-        #f0a000 100%);
+  .tilter {
+    width: 100%;
+    height: 100%;
+  }
+
+  .tilter.pop {
+    animation: pop 0.6s ease-out;
+  }
+
+  .tilter.tilt {
+    animation: tilt 0.9s ease-in-out;
+  }
+
+  .tilter.shake {
+    animation: shake 0.6s ease-in-out;
+  }
+
+  .tilter.nod {
+    animation: nod 0.7s ease-in-out;
+  }
+
+  .orb {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, #fff2a8 0%, var(--orb-a) 32%, var(--orb-b) 100%);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: breathe 3.4s ease-in-out infinite, glow 4.8s ease-in-out infinite;
+    box-shadow:
+      inset -7px -7px 16px rgba(0, 0, 0, 0.18),
+      inset 5px 5px 12px rgba(255, 255, 255, 0.35),
+      0 8px 24px rgba(255, 179, 0, 0.35);
+  }
+
+  .face {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    transition: transform 0.25s ease;
+  }
+
+  .face.look-left {
+    transform: translateX(-7px);
+  }
+
+  .face.look-right {
+    transform: translateX(7px);
+  }
+
+  .face.think {
+    animation: ponder 2.6s ease-in-out infinite;
+  }
+
+  .face.roll {
+    animation: eye-roll 0.9s ease-in-out;
+  }
+
+  .eye-group {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .brow {
+    width: 16px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--eye);
+    opacity: 0;
+    transform: translateY(4px) rotate(0deg);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .brow.raise {
+    opacity: 1;
+    transform: translateY(-3px) rotate(0deg);
+  }
+
+  .brow.furrow {
+    opacity: 1;
+    transform: translateY(1px) rotate(-14deg);
+  }
+
+  .eye {
+    background: var(--eye);
+    transition: width 0.18s ease, height 0.18s ease, border-radius 0.18s ease, transform 0.18s ease;
+  }
+
+  .eye.normal {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    transform: scaleY(1);
+  }
+
+  .eye.closed {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    transform: scaleY(0.08);
+  }
+
+  .eye.happy {
+    width: 26px;
+    height: 15px;
+    border-radius: 50% 50% 0 0;
+    transform: scaleY(1);
+  }
+
+  .eye.wide {
+    width: 27px;
+    height: 34px;
+    border-radius: 50%;
+    transform: scaleY(1);
+  }
+
+  .eye.sleepy {
+    width: 20px;
+    height: 8px;
+    border-radius: 4px;
+    transform: scaleY(1);
+  }
+
+  #bubble {
+    position: fixed;
+    top: 10px;
+    left: 84px;
+    right: 16px;
+    background: #ffffff;
+    border: 2px solid #b8b8b8;
+    border-radius: 14px;
+    padding: 10px 13px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #4a3200;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    opacity: 0;
+    transform: scale(0.8);
+    transform-origin: left center;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  #bubble.show {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  #bubble::before {
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: 22px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 9px solid #b8b8b8;
+  }
+
+  #bubble::after {
+    content: "";
+    position: absolute;
+    left: -7px;
+    top: 23px;
+    width: 0;
+    height: 0;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-right: 8px solid #ffffff;
+  }
+
+  .bubble-word {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  .talk-letter {
+    display: inline-block;
+    opacity: 0;
+    animation: letter-talk 0.5s ease forwards;
+  }
+
+  .shadow {
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    width: 70%;
+    height: 10px;
+    background: radial-gradient(ellipse at center, rgba(255, 179, 0, 0.3) 0%, rgba(255, 179, 0, 0) 70%);
+    transform: translateX(-50%);
+    border-radius: 50%;
+    animation: shadow-pulse 3.4s ease-in-out infinite;
+  }
+
+  @keyframes orb-in {
+    0% { opacity: 0; transform: scale(0.25); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes letter-talk {
+    0%   { opacity: 0; transform: translateY(5px); }
+    45%  { opacity: 1; transform: translateY(-3px); }
+    75%  { transform: translateY(1px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes ripple-out {
+    0%   { transform: scale(0.3); opacity: 0.75; border-width: 5px; }
+    65%  { opacity: 0.3; }
+    100% { transform: scale(3.4); opacity: 0; border-width: 1px; }
+  }
+
+  @keyframes flash-core-out {
+    0%   { transform: scale(0.2); opacity: 0.9; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.025); }
+  }
+
+  @keyframes glow {
+    0%, 100% {
       box-shadow:
-        0 0 32px 5px rgba(255, 190, 40, 0.32),
-        0 0 65px 16px rgba(255, 170, 0, 0.13),
-        inset 0 -12px 26px rgba(180, 100, 0, 0.2),
-        inset 0 12px 20px rgba(255, 255, 220, 0.38);
-      position: relative;
-      animation: ballPulse 3.4s ease-in-out infinite;
+        inset -7px -7px 16px rgba(0, 0, 0, 0.18),
+        inset 5px 5px 12px rgba(255, 255, 255, 0.35),
+        0 8px 24px rgba(255, 179, 0, 0.35);
     }
+    50% {
+      box-shadow:
+        inset -7px -7px 16px rgba(0, 0, 0, 0.18),
+        inset 5px 5px 12px rgba(255, 255, 255, 0.35),
+        0 8px 28px rgba(255, 179, 0, 0.45);
+    }
+  }
 
-    @keyframes ballPulse {
-      0%, 100% { transform: scale(1); }
-      50%      { transform: scale(1.03); }
-    }
+  @keyframes shadow-pulse {
+    0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.35; }
+    50% { transform: translateX(-50%) scale(0.8); opacity: 0.18; }
+  }
 
-    /* Eyes */
-    .eyes {
-      position: absolute;
-      top: 52%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      display: flex;
-      gap: 28px;
-      transition: all 0.3s ease;
-    }
+  @keyframes pop {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.1); }
+    60% { transform: scale(0.97); }
+    100% { transform: scale(1); }
+  }
 
-    .eye {
-      width: 17px;
-      height: 32px;
-      background: #fff;
-      border-radius: 9px;
-      box-shadow: 0 0 5px rgba(255, 255, 255, 0.45);
-      transition: all 0.25s ease;
-      transform-origin: center;
-    }
+  @keyframes tilt {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-4deg); }
+    75% { transform: rotate(4deg); }
+  }
 
-    .eye.blink {
-      animation: blink 0.26s ease;
-    }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-2px); }
+    40% { transform: translateX(2px); }
+    60% { transform: translateX(-1.5px); }
+    80% { transform: translateX(1.5px); }
+  }
 
-    @keyframes blink {
-      0%, 100% { transform: scaleY(1); }
-      50%      { transform: scaleY(0.08); }
-    }
+  @keyframes nod {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    30% { transform: translateY(1.5px) rotate(-1.5deg); }
+    60% { transform: translateY(0) rotate(1deg); }
+  }
 
-    /* Thinking expression (slightly looking up-left) */
-    .eyes.thinking {
-      transform: translate(calc(-50% - 6px), calc(-50% - 5px));
-    }
+  @keyframes ponder {
+    0%, 100% { transform: translate(0, -3px); }
+    50% { transform: translate(3px, -3px); }
+  }
 
-    .eyes.thinking .eye {
-      height: 28px;
-    }
+  @keyframes eye-roll {
+    0%   { transform: translate(0, 0); }
+    25%  { transform: translate(-3px, -2.5px); }
+    50%  { transform: translate(0, -4px); }
+    75%  { transform: translate(3px, -2.5px); }
+    100% { transform: translate(0, 0); }
+  }
 
-    /* Highlight */
-    .highlight {
-      position: absolute;
-      top: 22px;
-      left: 36px;
-      width: 38px;
-      height: 22px;
-      background: rgba(255, 255, 255, 0.36);
-      border-radius: 50%;
-      filter: blur(4px);
-      transform: rotate(-28deg);
-      pointer-events: none;
-    }
+  /* A discreet pull-tab at the bottom edge, tap or swipe up to reveal
+     the options sheet. Only appears once Evia is docked in the corner. */
+  #sheetHandle {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    width: 64px;
+    height: 26px;
+    margin-left: -32px;
+    z-index: 50;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 8px;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(100%);
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
 
-    .hint {
-      position: absolute;
-      bottom: 32px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: #aaa;
-      font-size: 0.88rem;
-      letter-spacing: 0.03em;
-      text-align: center;
-      line-height: 1.55;
-      transition: opacity 0.4s ease;
-    }
+  #sheetHandle.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
 
-    .hint strong {
-      color: #777;
-      font-weight: 500;
+  #sheetHandle .grip {
+    width: 40px;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.18);
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  #sheetHandle:active .grip,
+  #sheetHandle.dragging .grip {
+    background: rgba(0, 0, 0, 0.3);
+    transform: scaleX(1.15);
+  }
+
+  #sheetBlur {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 40;
+  }
+
+  #sheetBlur.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  #sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 51;
+    background: #ffffff;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.14);
+    padding: 10px 0 max(10px, env(safe-area-inset-bottom, 10px));
+    transform: translateY(100%);
+    transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  #sheet.open {
+    transform: translateY(0);
+  }
+
+  #sheet .grip {
+    width: 36px;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.15);
+    margin: 0 auto 6px;
+  }
+
+  .sheet-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 14px 20px;
+    background: none;
+    border: none;
+    border-top: 1px solid #efefef;
+    cursor: pointer;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .sheet-row:first-of-type {
+    border-top: none;
+  }
+
+  .sheet-row:active {
+    background: #f7f7f7;
+  }
+
+  .sheet-row .row-icon {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #8a8a8a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sheet-row .row-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: #333333;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal, .flash-ring, .ripple, .flash-core, .floater, .orb, .shadow,
+    .tilter.pop, .tilter.tilt, .tilter.shake, .tilter.nod,
+    .face.think, .face.roll {
+      animation: none;
     }
-  </style>
+    .reveal { opacity: 1; transform: none; }
+    .ripple, .flash-core { opacity: 0; }
+    #bubble { transition: none; }
+    .talk-letter { animation: none; opacity: 1; }
+  }
+</style>
 </head>
 <body>
-  <div class="name center" id="name">Evia</div>
-
-  <div class="stage center" id="stage">
-    <div class="glow-floor"></div>
-    <div class="ball-wrap" id="ballWrap">
-      <div class="ball">
-        <div class="highlight"></div>
-        <div class="eyes" id="eyes">
-          <div class="eye" id="eyeL"></div>
-          <div class="eye" id="eyeR"></div>
+  <div id="dock">
+    <div class="reveal">
+      <div class="flash-ring">
+        <span class="flash-core"></span>
+        <span class="ripple r1"></span>
+        <span class="ripple r2"></span>
+        <span class="ripple r3"></span>
+      </div>
+      <div class="orb-wrap">
+        <div class="floater">
+          <div class="tilter" id="tilter">
+            <div class="orb">
+              <div class="face" id="face">
+                <div class="eye-group">
+                  <div class="brow left" id="browL"></div>
+                  <div class="eye left normal" id="eyeL"></div>
+                </div>
+                <div class="eye-group">
+                  <div class="brow right" id="browR"></div>
+                  <div class="eye right normal" id="eyeR"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+        <div class="shadow"></div>
       </div>
     </div>
   </div>
 
-  <div class="hint" id="hint">
-    Click Evia to send her to the corner<br>
-    <strong>Click again to bring her back</strong>
+  <div id="bubble">
+    <span id="bubbleText"></span>
   </div>
 
-  <script>
-    const stage = document.getElementById('stage');
-    const nameEl = document.getElementById('name');
-    const eyes = document.getElementById('eyes');
-    const eyeL = document.getElementById('eyeL');
-    const eyeR = document.getElementById('eyeR');
-    const hint = document.getElementById('hint');
+  <div id="sheetBlur"></div>
 
-    let inCorner = false;
-    let isAnimating = false;
+  <div id="sheetHandle" aria-label="Open options" role="button" tabindex="0">
+    <span class="grip"></span>
+  </div>
 
-    // Idle blink
-    function scheduleBlink() {
-      const delay = 2600 + Math.random() * 3200;
-      setTimeout(() => {
-        if (!isAnimating) {
-          eyeL.classList.add('blink');
-          eyeR.classList.add('blink');
-          setTimeout(() => {
-            eyeL.classList.remove('blink');
-            eyeR.classList.remove('blink');
-          }, 260);
-        }
-        scheduleBlink();
-      }, delay);
-    }
-    scheduleBlink();
+  <div id="sheet" role="dialog" aria-label="Options">
+    <span class="grip"></span>
 
-    // Subtle eye drift only when centered
-    setInterval(() => {
-      if (inCorner || isAnimating) return;
-      const x = (Math.random() - 0.5) * 7;
-      const y = (Math.random() - 0.5) * 4;
-      eyes.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
-      setTimeout(() => {
-        if (!inCorner) {
-          eyes.style.transform = 'translate(-50%, -50%)';
-        }
-      }, 450 + Math.random() * 350);
-    }, 4200 + Math.random() * 2500);
+    <button class="sheet-row" id="rowChat">
+      <span class="row-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M4 5.5C4 4.67 4.67 4 5.5 4h13c.83 0 1.5.67 1.5 1.5v9c0 .83-.67 1.5-1.5 1.5H9l-4 3.5v-3.5H5.5C4.67 16 4 15.33 4 14.5v-9z" fill="#ffffff"/>
+        </svg>
+      </span>
+      <span class="row-label">Chat</span>
+    </button>
 
-    function toggle() {
-      if (isAnimating) return;
-      isAnimating = true;
+    <button class="sheet-row" id="rowQr">
+      <span class="row-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="7" height="7" rx="1" fill="#ffffff"/>
+          <rect x="14" y="3" width="7" height="7" rx="1" fill="#ffffff"/>
+          <rect x="3" y="14" width="7" height="7" rx="1" fill="#ffffff"/>
+          <rect x="14" y="14" width="3" height="3" rx="0.5" fill="#ffffff"/>
+          <rect x="18" y="14" width="3" height="3" rx="0.5" fill="#ffffff"/>
+          <rect x="14" y="18" width="3" height="3" rx="0.5" fill="#ffffff"/>
+          <rect x="18" y="18" width="3" height="3" rx="0.5" fill="#ffffff"/>
+        </svg>
+      </span>
+      <span class="row-label">QR Code</span>
+    </button>
 
-      inCorner = !inCorner;
+    <button class="sheet-row" id="rowOptions">
+      <span class="row-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <circle cx="6" cy="7" r="2.2" fill="#ffffff"/>
+          <rect x="10" y="6.2" width="10" height="1.6" rx="0.8" fill="#ffffff"/>
+          <circle cx="18" cy="13" r="2.2" fill="#ffffff"/>
+          <rect x="4" y="12.2" width="10" height="1.6" rx="0.8" fill="#ffffff"/>
+          <circle cx="9" cy="19" r="2.2" fill="#ffffff"/>
+          <rect x="13" y="18.2" width="7" height="1.6" rx="0.8" fill="#ffffff"/>
+        </svg>
+      </span>
+      <span class="row-label">Options</span>
+    </button>
+  </div>
 
-      if (inCorner) {
-        // Go to top-left corner
-        stage.classList.remove('center');
-        stage.classList.add('corner');
-        nameEl.classList.remove('center');
-        nameEl.classList.add('corner');
+<script>
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-        eyes.classList.add('thinking');
-        hint.innerHTML = 'Click Evia to bring her back to the centre<br><strong>She’s thinking up here…</strong>';
-      } else {
-        // Return to centre
-        stage.classList.remove('corner');
-        stage.classList.add('center');
-        nameEl.classList.remove('corner');
-        nameEl.classList.add('center');
+  var dock = document.getElementById('dock');
+  var face = document.getElementById('face');
+  var eyeL = document.getElementById('eyeL');
+  var eyeR = document.getElementById('eyeR');
+  var browL = document.getElementById('browL');
+  var browR = document.getElementById('browR');
+  var tilter = document.getElementById('tilter');
+  var bubble = document.getElementById('bubble');
+  var bubbleText = document.getElementById('bubbleText');
+  var sheetHandle = document.getElementById('sheetHandle');
 
-        eyes.classList.remove('thinking');
-        eyes.style.transform = 'translate(-50%, -50%)';
-        hint.innerHTML = 'Click Evia to send her to the corner<br><strong>Click again to bring her back</strong>';
+  var BUBBLE_MESSAGE = 'Which of the jobs below are you working on today?';
+  var bubbleTimer = null;
+  var fabVisibilityTimer = null;
+
+  function buildBubbleText(message) {
+    bubbleText.innerHTML = '';
+    var words = message.split(' ');
+    var globalIndex = 0;
+
+    words.forEach(function (word, wIdx) {
+      var wordSpan = document.createElement('span');
+      wordSpan.className = 'bubble-word';
+
+      for (var c = 0; c < word.length; c++) {
+        var letter = document.createElement('span');
+        letter.className = 'talk-letter';
+        letter.textContent = word[c];
+        letter.style.animationDelay = (globalIndex * 22) + 'ms';
+        wordSpan.appendChild(letter);
+        globalIndex++;
       }
 
-      // Allow next click after the transition finishes
-      setTimeout(() => {
-        isAnimating = false;
-      }, 780);
+      bubbleText.appendChild(wordSpan);
+
+      if (wIdx < words.length - 1) {
+        // a plain breakable space between word spans, so wrapping only
+        // ever happens between words, never inside one
+        bubbleText.appendChild(document.createTextNode(' '));
+        globalIndex++;
+      }
+    });
+  }
+
+  // Each step describes a short "beat" of personality:
+  // eyes: shape for both eyes | eyeL/eyeR: shape for one eye only (wink)
+  // brow: shape for both brows | browL/browR: shape for one brow only
+  // face: look-left / look-right / roll (a playful eye-roll)
+  // orb: pop / tilt / shake / nod, a matching flourish on the whole orb
+  var sequence = [
+    { duration: 3200 },
+    { duration: 220,  eyes: 'closed' },                                   // blink
+    { duration: 3600 },
+    { duration: 1000, eyes: 'happy', orb: 'tilt' },                        // happy
+    { duration: 4200 },
+    { duration: 400,  eyeL: 'closed' },                                    // wink left
+    { duration: 4000 },
+    { duration: 220,  eyes: 'closed' },                                    // blink
+    { duration: 3400 },
+    { duration: 800,  eyes: 'wide', brow: 'raise', orb: 'pop' },           // surprised
+    { duration: 4500 },
+    { duration: 700,  face: 'look-left' },
+    { duration: 700,  face: 'look-right' },
+    { duration: 4000 },
+    { duration: 2200, eyes: 'sleepy' },                                    // sleepy
+    { duration: 4000 },
+    { duration: 900,  browR: 'raise', orb: 'nod' },                        // skeptical / one eyebrow up
+    { duration: 4200 },
+    { duration: 220,  eyes: 'closed' },                                    // blink
+    { duration: 3600 },
+    { duration: 500,  eyeR: 'closed' },                                    // wink right
+    { duration: 4200 },
+    { duration: 900,  eyes: 'happy', orb: 'shake' },                       // laughing
+    { duration: 4500 },
+    { duration: 900,  face: 'roll' },                                      // eye-roll
+    { duration: 4200 }
+  ];
+
+  var i = 0;
+  var loopTimer = null;
+  var docked = false;
+
+  function applyStep(step) {
+    var eyeLClass = step.eyes || step.eyeL || 'normal';
+    var eyeRClass = step.eyes || step.eyeR || 'normal';
+    eyeL.className = 'eye left ' + eyeLClass;
+    eyeR.className = 'eye right ' + eyeRClass;
+
+    var browLClass = step.brow || step.browL || '';
+    var browRClass = step.brow || step.browR || '';
+    browL.className = 'brow left' + (browLClass ? ' ' + browLClass : '');
+    browR.className = 'brow right' + (browRClass ? ' ' + browRClass : '');
+
+    var faceClass = step.face && step.face !== 'roll' ? ' ' + step.face : '';
+    face.className = 'face' + faceClass;
+    if (step.face === 'roll') {
+      void face.offsetWidth; // restart the eye-roll animation
+      face.classList.add('roll');
     }
 
-    stage.addEventListener('click', toggle);
-    stage.addEventListener('touchstart', (e) => {
+    tilter.classList.remove('pop', 'tilt', 'shake', 'nod');
+    if (step.orb) {
+      void tilter.offsetWidth; // restart animation even if same class as before
+      tilter.classList.add(step.orb);
+    }
+  }
+
+  function loop() {
+    var step = sequence[i % sequence.length];
+    applyStep(step);
+    i++;
+    loopTimer = setTimeout(loop, step.duration);
+  }
+
+  function stopLoop() {
+    clearTimeout(loopTimer);
+  }
+
+  dock.addEventListener('click', function () {
+    docked = !docked;
+
+    if (docked) {
+      stopLoop();
+      tilter.classList.remove('pop', 'tilt', 'shake', 'nod');
+      eyeL.className = 'eye left normal';
+      eyeR.className = 'eye right normal';
+      browL.className = 'brow left';
+      browR.className = 'brow right';
+      face.className = 'face think';
+      dock.classList.add('docked');
+
+      clearTimeout(bubbleTimer);
+      buildBubbleText(BUBBLE_MESSAGE);
+      var revealDelay = reduceMotion ? 0 : 650;
+      bubbleTimer = setTimeout(function () {
+        bubble.classList.add('show');
+      }, revealDelay);
+
+      clearTimeout(fabVisibilityTimer);
+      fabVisibilityTimer = setTimeout(function () {
+        sheetHandle.classList.add('visible');
+      }, revealDelay);
+    } else {
+      dock.classList.remove('docked');
+      face.className = 'face';
+      clearTimeout(bubbleTimer);
+      bubble.classList.remove('show');
+
+      clearTimeout(fabVisibilityTimer);
+      sheetHandle.classList.remove('visible');
+      if (typeof setSheetOpen === 'function') {
+        setSheetOpen(false);
+      }
+
+      if (!reduceMotion) {
+        loop();
+      }
+    }
+  });
+
+  if (!reduceMotion) {
+    loop();
+  }
+
+  // --- Discreet bottom-sheet options drawer ---
+  var sheet = document.getElementById('sheet');
+  var sheetBlur = document.getElementById('sheetBlur');
+  var sheetOpen = false;
+
+  function setSheetOpen(open) {
+    sheetOpen = open;
+    sheet.classList.toggle('open', open);
+    sheetBlur.classList.toggle('show', open);
+    sheetHandle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  sheetHandle.addEventListener('click', function () {
+    setSheetOpen(!sheetOpen);
+  });
+
+  sheetHandle.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      toggle();
+      setSheetOpen(!sheetOpen);
+    }
+  });
+
+  sheetBlur.addEventListener('click', function () {
+    setSheetOpen(false);
+  });
+
+  document.querySelectorAll('.sheet-row').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setSheetOpen(false);
+      // hook up real navigation/actions here, e.g.:
+      // if (btn.id === 'rowChat') { ... }
+    });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && sheetOpen) {
+      setSheetOpen(false);
+    }
+  });
+
+  // Swipe up on the handle (or down on the sheet's own grip) to toggle.
+  function addSwipe(el, onSwipeUp, onSwipeDown) {
+    var startY = null;
+
+    el.addEventListener('touchstart', function (e) {
+      startY = e.touches[0].clientY;
+      el.classList.add('dragging');
+    }, { passive: true });
+
+    el.addEventListener('touchmove', function (e) {
+      if (startY === null) return;
+      var dy = e.touches[0].clientY - startY;
+      if (Math.abs(dy) > 6) {
+        e.preventDefault();
+      }
     }, { passive: false });
-  </script>
+
+    el.addEventListener('touchend', function (e) {
+      el.classList.remove('dragging');
+      if (startY === null) return;
+      var endY = e.changedTouches[0].clientY;
+      var dy = endY - startY;
+      if (dy < -24 && onSwipeUp) onSwipeUp();
+      if (dy > 24 && onSwipeDown) onSwipeDown();
+      startY = null;
+    });
+  }
+
+  addSwipe(sheetHandle, function () { setSheetOpen(true); }, function () { setSheetOpen(false); });
+  addSwipe(sheet, null, function () { setSheetOpen(false); });
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () {
+        // installability still works without SW registration succeeding locally
+      });
+    });
+  }
+</script>
 </body>
 </html>
